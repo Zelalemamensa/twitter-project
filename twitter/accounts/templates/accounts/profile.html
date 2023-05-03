@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_tag %}
+
+{% block title %}{{profile.username}}{% endblock title %}
+    
+{% block css %}<link rel="stylesheet" href="{% static 'css/profile.css' %}">{% endblock css %}
+
+{% block content %}
+    <div class="main-profile__section">
+        <div class="main-profile__header--content">
+            <h5>{{profile.userprofile.name}}</h5>
+            <p class="tweet-counts">6 Tweets</p>
+        </div>
+        <div class="main-profile__section-coverimage">
+            {% if profile.userprofile.coverImage %}
+                <img class="cover-image" src="{{profile.userprofile.coverImage.url}}" alt="Cover Image could not load">
+            {% else %}
+                <img class="cover-image" src="https://thefactnews.in/wp-content/uploads/2020/09/TWITTER-ROMANCE.jpg" alt="Cover Image could not load">
+            {% endif %}
+            <div class="profile-image__btns">
+                <div class="profile-image__div">
+                    {% if profile.userprofile.profileImage %}
+                        <img src="{{profile.userprofile.profileImage.url}}" alt="Profile Image could not load" class="profile-image">
+                    {% else %}
+                        <img src="https://twirpz.files.wordpress.com/2015/06/twitter-avi-gender-balanced-figure.png?w=640" alt="Profile Image could not load" class="profile-image">
+                    {% endif %}
+                </div>
+                {% if profile.username == request.user.username %}
+                    <div class="edit--button">
+                        <button style="outline: none;" class="edit-profile-btn" data-toggle="modal" data-target="#editFormModal" data-backdrop="static" data-keyboard="false">Edit Profile</button>
+                    </div>
+                {% else %}
+                    <div class="edit--button">
+                        <form action="{% url 'accounts:follow' %}" method="POST" id="follow_form">
+                            {% csrf_token %}
+                            <input type="hidden" name="profile_pk" value={{profile.pk}}>
+                            {% if request.user in profile.followers.followers.all %}
+                                <button type="submit" class="edit-profile-btn unfollow" id="follow_btn">Following</button>
+                            {% else %}
+                                <button type="submit" class="edit-profile-btn" id="follow_btn">Follow</button>
+                            {% endif %}
+                        </form>
+                    </div>
+                        <div class="follow-progress-bar" id="spinner">
+                        </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="profile-content--div">
+            <div class="username--full__name">
+                <h5 class="full--name--content">
+                    {% if profile.userprofile.name %}
+                        {{profile.userprofile.name}}
+                    {% else %}
+                        Twitter User
+                    {% endif %}
+                    {% if request.user.is_authenticated and request.user.username == profile.username %}
+                        <i style="cursor: pointer;" class="fa fa-info-circle" data-toggle="modal" data-target="#exampleModal"></i>
+                    {% endif %}
+                    {% if profile.userprofile.is_verified %}
+                        <img src="{% static 'images/icons/verif-icon.svg' %}" alt="Profile Image could not load" class="verify--icon ml-1"> 
+                    {% endif %}
+                </h5>
+                <span>@{{profile.username}}</span>
+            </div>
+            <div class="user--twitter_bio mt-3">
+                <p>{{profile.userprofile.bio|anshu|safe}}</p>
+            </div>
+            <div class="link-calender--icon">
+                <div class="link--icon__url flex--item">
+                    <img class="link-icons" src="{% static 'images/icons/link-icon.svg' %}" alt="link icon">
+                    <a href="{{profile.userprofile.website}}">{{profile.userprofile.website|linkerate}}</a>
+                </div>
+                <div class="link--icon__url flex--item">
+                    <img class="link-icons" src="{% static 'images/icons/calender.svg' %}" alt="link icon">
+                    <span class="date--joined">Joined {{profile.userprofile.joining_date|date:"F Y"}}</span>
+                </div>
+            </div>
+            <div class="following-follwer__list mt-2">
+                <div class="link--icon__url flex--item mr-5">
+                    <span class="follow-count" id="following-count">{{profile.followers.following.count}}</span> <span class="follow-text"> Following</span>
+                </div>
+                <div class="link--icon__url flex--item">
+                    <span class="follow-count" id="followers-count">{{profile.followers.followers.count}}</span><span class="follow-text"> Followers</span>
+                </div>
+            </div>
+        </div>
+        <div class="profile_detail--tabs">
+            {% include 'accounts/__profile__detail__inject__.html' %}
+        </div>
+    </div>
+
+    <!-- modal popup -->
+    <!-- Button trigger modal -->
+
+  
+    <!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Email Verification</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body" id="email-verify-div">
+            <div class="invisible" role="alert" id='success-alert'></div>
+            {% if profile.userprofile.mail_verified %}
+                <div class="alert alert-success" role="alert">
+                    Cool!! Your email is verified!!
+                </div>
+            {% else %}
+                <div class="alert alert-danger" role="alert">
+                    Oops, Your email is not verified!!
+                    <form action="{% url 'accounts:email_verify' %}" method="post" id="send-otp">
+                        {% csrf_token %}
+                        <input type="submit" value="Get OTP to verify email">
+                        <div class="spinner-border text-primary invisible" id="otp-spinner" role="status">
+                            <span class="sr-only"></span>
+                        </div>
+                    </form>
+
+                    <form action="{% url 'accounts:check_otp' %}" method="post" id="check-otp">
+                        {% csrf_token %}
+                        <input type="text" name="user_otp" id="user-otp" placeholder="Enter OTP here!!" required autocomplete="off">
+                        <input type="submit" value="Verify Email">
+                    </form>
+                    
+                </div>
+            {% endif %}
+        </div>
+      </div>
+    </div>
+</div>
+
+{% include 'accounts/__profile_edit__.html' %}
+{% endblock content %}
+
+{% block right_sidebar %}
+    {% if request.user.is_authenticated and profile.username == request.user.username %}
+        <a href="{% url 'accounts:user_report' %}" target="_blank">
+            <img src="{% static 'images/icons/pdf.svg' %}" style="width: 10%; margin-top: 10px;" alt="report"> See Report
+        </a>
+    {% endif %}
+{% endblock %}
+
+{% block script %}
+    <script src="{% static 'js/profile.js' %}"></script>
+{% endblock script %}
